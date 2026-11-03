@@ -1,0 +1,147 @@
+
+# Practical 6: Time Series Data Analysis
+
+# 1. Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.arima.model import ARIMA
+
+# 2. Load the dataset
+df = pd.read_csv("tata_stock_price.csv")
+
+# 3. Explore the dataset
+print("Dataset Head:")
+print(df.head())
+
+print("\nDataset Information:")
+df.info()
+
+# 4. Convert Date into datetime and set it as index
+df['Date'] = pd.to_datetime(df['Date'])
+df.set_index('Date', inplace=True)
+df.sort_index(inplace=True)
+
+# 5. Plot historical stock price trends
+plt.figure(figsize=(14, 7))
+plt.plot(df['Close'], label='Closing Price')
+
+plt.title('Historical Stock Price of Tata')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# 6. Calculate moving averages
+df['MA50'] = df['Close'].rolling(window=50).mean()
+df['MA200'] = df['Close'].rolling(window=200).mean()
+
+plt.figure(figsize=(14, 7))
+plt.plot(df['Close'], label='Closing Price')
+plt.plot(df['MA50'], label='50-Day Moving Average')
+plt.plot(df['MA200'], label='200-Day Moving Average')
+
+plt.title('Stock Price with Moving Averages')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# 7. Perform seasonality analysis
+df_monthly = df['Close'].resample('ME').mean()
+
+if len(df_monthly) >= 24:
+    decomposition = seasonal_decompose(
+        df_monthly,
+        model='additive',
+        period=12
+    )
+
+    fig = decomposition.plot()
+    fig.set_size_inches(14, 10)
+    plt.suptitle('Seasonal Decomposition of Monthly Closing Prices')
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Not enough data for seasonal decomposition.")
+
+# 8. Analyze correlation with trading volume
+plt.figure(figsize=(10, 6))
+
+sns.scatterplot(x=df['Volume'], y=df['Close'])
+
+plt.title('Correlation between Closing Price and Volume')
+plt.xlabel('Volume')
+plt.ylabel('Closing Price')
+plt.grid(True)
+plt.show()
+
+correlation = df['Close'].corr(df['Volume'])
+
+print("\nCorrelation between Close Price and Volume:")
+print(correlation)
+
+# 9. Check stationarity using ADF test
+result = adfuller(df['Close'].dropna())
+
+print("\nADF Statistic:", result[0])
+print("p-value:", result[1])
+
+if result[1] > 0.05:
+    df_diff = df['Close'].diff().dropna()
+
+    result_diff = adfuller(df_diff)
+
+    print("\nADF Statistic after differencing:", result_diff[0])
+    print("p-value after differencing:", result_diff[1])
+else:
+    df_diff = df['Close'].dropna()
+
+# 10. Plot ACF and PACF
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+
+plot_acf(df_diff, ax=ax1, lags=40)
+plot_pacf(df_diff, ax=ax2, lags=40)
+
+plt.tight_layout()
+plt.show()
+
+# 11. Split data into training and testing
+train_size = int(len(df) * 0.8)
+
+train = df.iloc[:train_size]
+test = df.iloc[train_size:]
+
+# 12. Apply ARIMA model
+try:
+    model = ARIMA(train['Close'], order=(5, 1, 0))
+    model_fit = model.fit()
+
+    print("\nARIMA Model Summary:")
+    print(model_fit.summary())
+
+    # 13. Make predictions
+    predictions = model_fit.forecast(steps=len(test))
+
+    # 14. Plot actual and predicted prices
+    plt.figure(figsize=(14, 7))
+
+    plt.plot(train.index, train['Close'], label='Training Data')
+    plt.plot(test.index, test['Close'], label='Actual Price')
+    plt.plot(test.index, predictions, label='Predicted Price')
+
+    plt.title('Stock Price Prediction using ARIMA')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+except Exception as e:
+    print("Error during ARIMA modeling:", e)
