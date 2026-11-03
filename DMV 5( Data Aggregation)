@@ -1,0 +1,137 @@
+
+# Practical 5: Data Aggregation
+
+# 1. Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 2. Load the dataset
+df = pd.read_csv("customer_shopping_data.csv")
+
+# 3. Explore the dataset
+print("--- Dataset Head ---")
+print(df.head())
+
+print("\n--- Dataset Information ---")
+df.info()
+
+print("\n--- Descriptive Statistics ---")
+print(df.describe())
+
+# 4. Identify relevant variables
+print("\nRegion = shopping_mall")
+print("Sales Amount = price")
+print("Product Category = category")
+
+# 5. Calculate total sales by region
+regional_sales = (
+    df.groupby('shopping_mall')['price']
+    .sum()
+    .reset_index()
+)
+
+regional_sales.rename(
+    columns={
+        'shopping_mall': 'Region',
+        'price': 'Total_Sales'
+    },
+    inplace=True
+)
+
+regional_sales_sorted = regional_sales.sort_values(
+    by='Total_Sales',
+    ascending=False
+)
+
+print("\nTotal Sales by Region:")
+print(regional_sales_sorted)
+
+# Save regional sales data
+regional_sales_sorted.to_csv(
+    'regional_sales.csv',
+    index=False
+)
+
+# 6. Create bar plot
+sns.set_style('whitegrid')
+
+plt.figure(figsize=(12, 7))
+
+sns.barplot(
+    data=regional_sales_sorted,
+    x='Total_Sales',
+    y='Region',
+    hue='Region',
+    legend=False,
+    palette='viridis'
+)
+
+plt.title('Total Sales by Region')
+plt.xlabel('Total Sales Amount')
+plt.ylabel('Region')
+plt.tight_layout()
+
+plt.savefig('regional_sales_barchart.png')
+plt.show()
+
+# 7. Identify top-performing regions
+top_n = 3
+
+print("\nTop 3 Performing Regions:")
+print(regional_sales_sorted.head(top_n))
+
+# 8. Calculate sales by region and product category
+region_category_sales = (
+    df.groupby(['shopping_mall', 'category'])['price']
+    .sum()
+    .reset_index()
+)
+
+region_category_sales.rename(
+    columns={
+        'shopping_mall': 'Region',
+        'category': 'Product_Category',
+        'price': 'Total_Sales'
+    },
+    inplace=True
+)
+
+print("\nSales by Region and Category:")
+print(region_category_sales.head(10))
+
+# Save region and category sales data
+region_category_sales.to_csv(
+    'region_category_sales.csv',
+    index=False
+)
+
+# 9. Create stacked bar plot
+pivot_df = region_category_sales.pivot(
+    index='Region',
+    columns='Product_Category',
+    values='Total_Sales'
+).fillna(0)
+
+pivot_df.plot(
+    kind='bar',
+    stacked=True,
+    figsize=(14, 9),
+    cmap='tab10'
+)
+
+plt.title('Total Sales by Region and Product Category')
+plt.xlabel('Region')
+plt.ylabel('Total Sales Amount')
+plt.xticks(rotation=45, ha='right')
+
+plt.legend(
+    title='Product Category',
+    bbox_to_anchor=(1.05, 1),
+    loc='upper left'
+)
+
+plt.tight_layout()
+
+plt.savefig('region_category_stacked_barchart.png')
+plt.show()
