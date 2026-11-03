@@ -1,0 +1,112 @@
+# practical no. 6: Reinforcement Learning
+
+# 1. Import required libraries
+import numpy as np
+import random
+
+# 2. Create Maze Environment
+class Maze:
+    def __init__(self, size=4):
+        self.size = size
+        self.reset()
+
+    # Reset agent to starting position
+    def reset(self):
+        self.agent_pos = [0, 0]
+        self.goal = [self.size - 1, self.size - 1]
+        return tuple(self.agent_pos)
+
+    # Move agent according to action
+    def step(self, action):
+        if action == 0 and self.agent_pos[0] > 0:
+            self.agent_pos[0] -= 1       # Up
+
+        elif action == 1 and self.agent_pos[0] < self.size - 1:
+            self.agent_pos[0] += 1       # Down
+
+        elif action == 2 and self.agent_pos[1] > 0:
+            self.agent_pos[1] -= 1       # Left
+
+        elif action == 3 and self.agent_pos[1] < self.size - 1:
+            self.agent_pos[1] += 1       # Right
+
+        # Check whether agent reached the goal
+        if self.agent_pos == self.goal:
+            return tuple(self.agent_pos), 1, True
+
+        return tuple(self.agent_pos), -0.01, False
+
+
+# 3. Create Q-Learning Agent
+class QLearningAgent:
+    def __init__(self, actions, lr=0.1, gamma=0.9,
+                 eps=1.0, decay=0.995):
+
+        self.Q = {}
+        self.actions = actions
+        self.lr = lr
+        self.gamma = gamma
+        self.eps = eps
+        self.decay = decay
+
+    # Convert position into state
+    def get_state(self, pos):
+        return tuple(pos)
+
+    # Select an action
+    def choose_action(self, state):
+        self.Q.setdefault(state, np.zeros(len(self.actions)))
+
+        if random.random() < self.eps:
+            return random.choice(self.actions)
+
+        return np.argmax(self.Q[state])
+
+    # Update Q-value
+    def learn(self, s, a, r, s2):
+        self.Q.setdefault(s, np.zeros(len(self.actions)))
+        self.Q.setdefault(s2, np.zeros(len(self.actions)))
+
+        self.Q[s][a] += self.lr * (
+            r + self.gamma * np.max(self.Q[s2]) - self.Q[s][a]
+        )
+
+        self.eps *= self.decay
+
+
+# 4. Train the Agent
+env = Maze(size=4)
+agent = QLearningAgent(actions=[0, 1, 2, 3])
+
+episodes = 500
+
+for _ in range(episodes):
+    state = env.reset()
+    done = False
+
+    while not done:
+        action = agent.choose_action(state)
+
+        next_state, reward, done = env.step(action)
+
+        agent.learn(state, action, reward, next_state)
+
+        state = next_state
+
+
+# 5. Test the Trained Agent
+print("\nTesting the trained agent...")
+
+state = env.reset()
+done = False
+path = [state]
+
+while not done:
+    action = agent.choose_action(state)
+
+    next_state, reward, done = env.step(action)
+
+    path.append(next_state)
+    state = next_state
+
+print("Path taken by agent:", path)
