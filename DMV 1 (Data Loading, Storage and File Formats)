@@ -1,0 +1,150 @@
+#Practical 1: Data Loading, Storage and File Formats
+# 1. Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 2. Load data from CSV, Excel and JSON files
+print("--- Step 1: Loading Data ---")
+
+data_frames = []
+
+try:
+    csv_df = pd.read_csv("sales_data_sample.csv", encoding="latin1")
+    data_frames.append(csv_df)
+    print("CSV file loaded successfully.")
+except FileNotFoundError:
+    print("CSV file not found.")
+
+try:
+    excel_df = pd.read_excel("Sample-Sales-Data.xlsx")
+    data_frames.append(excel_df)
+    print("Excel file loaded successfully.")
+except FileNotFoundError:
+    print("Excel file not found.")
+
+try:
+    try:
+        json_df = pd.read_json("customers.json")
+    except ValueError:
+        json_df = pd.read_json("customers.json", lines=True)
+
+    data_frames.append(json_df)
+    print("JSON file loaded successfully.")
+except FileNotFoundError:
+    print("JSON file not found.")
+
+# 3. Combine all loaded datasets
+print("\n--- Step 2: Combining Data ---")
+
+if len(data_frames) == 0:
+    raise FileNotFoundError("No dataset files were found.")
+
+sales_df = pd.concat(data_frames, ignore_index=True)
+
+print("Combined dataset:")
+print(sales_df.head())
+
+print("Total rows:", len(sales_df))
+print("Total columns:", len(sales_df.columns))
+
+# 4. Clean the data
+for col in sales_df.columns:
+    if sales_df[col].apply(lambda x: isinstance(x, dict)).any():
+        sales_df[col] = sales_df[col].astype(str)
+
+# Fill missing numerical values with 0
+for col in sales_df.select_dtypes(include="number").columns:
+    sales_df[col] = sales_df[col].fillna(0)
+
+# Remove duplicate records
+sales_df.drop_duplicates(inplace=True)
+
+print("\nData cleaned successfully.")
+print("Rows after cleaning:", len(sales_df))
+
+# 5. Transform the data
+print("\n--- Step 3: Transforming Data ---")
+
+if "QUANTITYORDERED" in sales_df.columns and "PRICEEACH" in sales_df.columns:
+    sales_df["TotalSales"] = (
+        sales_df["QUANTITYORDERED"] * sales_df["PRICEEACH"]
+    )
+    print("TotalSales column created.")
+
+if "ORDERDATE" in sales_df.columns:
+    sales_df["ORDERDATE"] = pd.to_datetime(
+        sales_df["ORDERDATE"], errors="coerce"
+    )
+
+    sales_df["Year"] = sales_df["ORDERDATE"].dt.year
+
+print(sales_df.head())
+
+# 6. Analyze the data
+print("\n--- Step 4: Analyzing Data ---")
+
+if "TotalSales" in sales_df.columns:
+    print("\nDescriptive Statistics:")
+    print(sales_df[["QUANTITYORDERED", "PRICEEACH", "TotalSales"]].describe())
+
+    total_revenue = sales_df["TotalSales"].sum()
+    print("\nTotal Sales Revenue:", total_revenue)
+
+# 7. Set visualization style
+print("\n--- Step 5: Visualizing Data ---")
+sns.set_theme(style="whitegrid", palette="viridis")
+
+# 8. Plot total sales by year
+if "Year" in sales_df.columns and "TotalSales" in sales_df.columns:
+    sales_by_year = sales_df.groupby("Year")["TotalSales"].sum().reset_index()
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=sales_by_year, x="Year", y="TotalSales")
+    plt.title("Total Sales by Year")
+    plt.xlabel("Year")
+    plt.ylabel("Total Sales")
+    plt.tight_layout()
+    plt.show()
+
+# 9. Plot monthly sales trend
+if "ORDERDATE" in sales_df.columns and "TotalSales" in sales_df.columns:
+    monthly_sales = (
+        sales_df.dropna(subset=["ORDERDATE"])
+        .set_index("ORDERDATE")["TotalSales"]
+        .resample("ME").sum()
+    )
+
+    plt.figure(figsize=(14, 7))
+    monthly_sales.plot(marker="o")
+    plt.title("Monthly Sales Trend")
+    plt.xlabel("Date")
+    plt.ylabel("Total Sales")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+# 10. Plot order status distribution
+if "STATUS" in sales_df.columns:
+    plt.figure(figsize=(10, 6))
+    sns.countplot(
+        data=sales_df,
+        x="STATUS",
+        order=sales_df["STATUS"].value_counts().index
+    )
+    plt.title("Distribution of Order Status")
+    plt.xlabel("Status")
+    plt.ylabel("Number of Orders")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+# 11. Plot sales amount distribution
+if "TotalSales" in sales_df.columns:
+    plt.figure(figsize=(12, 7))
+    sns.histplot(sales_df["TotalSales"], bins=50, kde=True)
+    plt.title("Distribution of Sales Amount per Order")
+    plt.xlabel("Total Sales")
+    plt.ylabel("Number of Orders")
+    plt.tight_layout()
+    plt.show()
