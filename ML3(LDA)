@@ -1,0 +1,66 @@
+
+# Practical 3: Linear Discriminant Analysis (LDA)
+
+# 1. Import required libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+# 2. Load the Iris dataset
+iris = load_iris()
+
+X = iris.data
+y = iris.target
+
+# 3. Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# 4. Apply feature scaling
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# 5. Create and train the LDA model
+lda = LinearDiscriminantAnalysis(n_components=2)
+X_train_lda = lda.fit_transform(X_train, y_train)
+
+# 6. Transform testing data
+X_test_lda = lda.transform(X_test)
+
+# 7. Predict the output
+y_pred = lda.predict(X_test)
+
+# 8. Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# 9. Display confusion matrix
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# 10. Visualize the reduced training data
+plt.figure(figsize=(8, 6))
+
+for i, name in enumerate(iris.target_names):
+    plt.scatter(
+        X_train_lda[y_train == i, 0],
+        X_train_lda[y_train == i, 1],
+        label=name
+    )
+
+plt.xlabel("Linear Discriminant 1")
+plt.ylabel("Linear Discriminant 2")
+plt.title("LDA on Iris Dataset")
+plt.legend()
+plt.show()
+
+# 11. Display explained variance ratio
+print("Explained Variance Ratio:", lda.explained_variance_ratio_)
