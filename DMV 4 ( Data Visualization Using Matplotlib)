@@ -1,0 +1,130 @@
+
+# Practical 4: Data Visualization Using Matplotlib
+
+# 1. Import required libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 2. Load the dataset
+df = pd.read_csv("AirQuality.csv", sep=";", decimal=",")
+
+# 3. Preprocess the data
+
+# Remove completely empty columns and rows
+df.dropna(axis=1, how='all', inplace=True)
+df.dropna(how='all', inplace=True)
+
+# Correct the time format
+df['Time'] = df['Time'].astype(str).str.replace('.', ':', regex=False)
+
+# Combine Date and Time
+df['DateTime'] = pd.to_datetime(
+    df['Date'].astype(str) + ' ' + df['Time'],
+    format='%d/%m/%Y %H:%M:%S'
+)
+
+# Set DateTime as index
+df.set_index('DateTime', inplace=True)
+
+# Remove original Date and Time columns
+df.drop(['Date', 'Time'], axis=1, inplace=True)
+
+# Replace -200 with missing values
+df.replace(-200, np.nan, inplace=True)
+
+# 4. Explore the dataset
+print("Dataset Information:")
+df.info()
+
+print("\nFirst 5 Rows:")
+print(df.head())
+
+print("\nDescriptive Statistics:")
+print(df.describe())
+
+# 5. Create a line plot for CO concentration
+plt.figure(figsize=(15, 7))
+
+plt.plot(df.index, df['CO(GT)'], label='CO(GT)', color='blue')
+
+plt.title('CO Concentration Trend Over Time')
+plt.xlabel('Date')
+plt.ylabel('CO Concentration (mg/m3)')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# 6. Create subplots for four pollutants
+fig, axes = plt.subplots(4, 1, figsize=(15, 20), sharex=True)
+
+# Plot CO
+axes[0].plot(df.index, df['CO(GT)'], label='CO(GT)', color='blue')
+axes[0].set_title('CO Concentration')
+axes[0].set_ylabel('mg/m3')
+axes[0].legend()
+axes[0].grid(True)
+
+# Plot Benzene
+axes[1].plot(df.index, df['C6H6(GT)'], label='C6H6(GT)', color='green')
+axes[1].set_title('Benzene Concentration')
+axes[1].set_ylabel('ug/m3')
+axes[1].legend()
+axes[1].grid(True)
+
+# Plot NOx
+axes[2].plot(df.index, df['NOx(GT)'], label='NOx(GT)', color='red')
+axes[2].set_title('NOx Concentration')
+axes[2].set_ylabel('ppb')
+axes[2].legend()
+axes[2].grid(True)
+
+# Plot NO2
+axes[3].plot(df.index, df['NO2(GT)'], label='NO2(GT)', color='purple')
+axes[3].set_title('NO2 Concentration')
+axes[3].set_xlabel('Date')
+axes[3].set_ylabel('ug/m3')
+axes[3].legend()
+axes[3].grid(True)
+
+plt.tight_layout()
+plt.show()
+
+# 7. Create a bar plot for daily CO concentration
+daily_co = df['CO(GT)'].resample('D').mean()
+
+plt.figure(figsize=(15, 7))
+daily_co.head(30).plot(kind='bar', color='skyblue')
+
+plt.title('Average Daily CO Concentration')
+plt.xlabel('Date')
+plt.ylabel('Average CO')
+plt.xticks(rotation=45)
+plt.grid(axis='y')
+plt.tight_layout()
+plt.show()
+
+# 8. Create a box plot
+pollutants = df[['CO(GT)', 'C6H6(GT)', 'NOx(GT)', 'NO2(GT)']]
+
+plt.figure(figsize=(12, 8))
+pollutants.boxplot()
+
+plt.title('Distribution of Pollutant Concentrations')
+plt.ylabel('Concentration')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# 9. Create a scatter plot
+plt.figure(figsize=(10, 6))
+
+plt.scatter(df['CO(GT)'], df['NOx(GT)'], alpha=0.5)
+
+plt.title('CO Concentration vs NOx Concentration')
+plt.xlabel('CO Concentration')
+plt.ylabel('NOx Concentration')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
