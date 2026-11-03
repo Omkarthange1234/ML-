@@ -1,0 +1,57 @@
+
+# Practical 3: Principal Component Analysis (PCA)
+
+# 1. Import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import load_wine
+
+# 2. Load the Wine dataset
+wine = load_wine()
+
+X = wine.data
+y = wine.target
+labels = wine.target_names
+
+# 3. Standardize the features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 4. Apply PCA with two components
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+# 5. Display the transformed data
+print("First five rows of PCA data:")
+print(X_pca[:5])
+
+# 6. Visualize PCA results
+plt.figure(figsize=(8, 6))
+
+for i, label in enumerate(np.unique(y)):
+    plt.scatter(
+        X_pca[y == label, 0],
+        X_pca[y == label, 1],
+        label=labels[i],
+        alpha=0.7
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("PCA: Wine Dataset Projected onto 2D")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# 7. Display explained variance ratio
+print("Explained Variance Ratio:")
+print(pca.explained_variance_ratio_)
+
+# 8. Display cumulative variance
+print("Cumulative Variance:")
+print(np.cumsum(pca.explained_variance_ratio_))
