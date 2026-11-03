@@ -1,0 +1,142 @@
+
+# Practical 2: Data Cleaning and Preparation
+
+# 1. Import required libraries
+import pandas as pd
+import numpy as np
+
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+
+# 2. Load the dataset
+df = pd.read_csv("Telcom_Customer_Churn.csv")
+
+print("Dataset imported successfully.")
+
+# 3. Explore the dataset
+print("\nFirst 5 rows:")
+print(df.head())
+
+print("\nDataset Information:")
+df.info()
+
+print("\nStatistical Summary:")
+print(df.describe())
+
+# 4. Handle missing values
+df["TotalCharges"] = df["TotalCharges"].replace(" ", np.nan)
+df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+
+print("\nMissing values before handling:")
+print(df.isnull().sum())
+
+mean_value = df["TotalCharges"].mean()
+df["TotalCharges"] = df["TotalCharges"].fillna(mean_value)
+
+print("\nMissing values after handling:")
+print(df.isnull().sum())
+
+# 5. Remove duplicate records
+print("\nDuplicates before removal:", df.duplicated().sum())
+
+df.drop_duplicates(inplace=True)
+
+print("Duplicates after removal:", df.duplicated().sum())
+
+# 6. Standardize inconsistent data
+cols = [
+    "OnlineSecurity", "OnlineBackup", "DeviceProtection",
+    "TechSupport", "StreamingTV", "StreamingMovies"
+]
+
+for col in cols:
+    df[col] = df[col].replace("No internet service", "No")
+
+print("\nStandardized values:")
+print(df["OnlineSecurity"].unique())
+
+# 7. Convert columns into correct data types
+if "customerID" in df.columns:
+    df.drop("customerID", axis=1, inplace=True)
+
+binary_cols = [
+    "Partner", "Dependents", "PhoneService", "PaperlessBilling"
+]
+
+for col in binary_cols:
+    df[col] = df[col].map({"Yes": 1, "No": 0})
+
+df["gender"] = df["gender"].map({"Male": 1, "Female": 0})
+df["Churn"] = df["Churn"].map({"Yes": 1, "No": 0})
+
+print("\nData types after conversion:")
+print(df.dtypes)
+
+# 8. Identify outliers using IQR method
+numerical_cols = ["tenure", "MonthlyCharges", "TotalCharges"]
+
+for col in numerical_cols:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+
+    IQR = Q3 - Q1
+
+    lower = Q1 - 1.5 * IQR
+    upper = Q3 + 1.5 * IQR
+
+    outliers = df[(df[col] < lower) | (df[col] > upper)]
+
+    print("Outliers in", col, ":", len(outliers))
+
+# 9. Perform feature engineering
+bins = [0, 12, 24, 48, 60, 72]
+labels = ["0-1 Year", "1-2 Years", "2-4 Years", "4-5 Years", "5+ Years"]
+
+df["TenureGroup"] = pd.cut(
+    df["tenure"], bins=bins, labels=labels, right=False
+)
+
+print("\nTenure Group:")
+print(df[["tenure", "TenureGroup"]].head())
+
+# 10. Convert categorical columns into numerical columns
+df_cleaned = pd.get_dummies(df, drop_first=True, dtype=int)
+
+print("\nShape after encoding:", df_cleaned.shape)
+
+# 11. Normalize or scale the data
+X = df_cleaned.drop("Churn", axis=1)
+y = df_cleaned["Churn"]
+
+scaler = MinMaxScaler()
+
+X_scaled = scaler.fit_transform(X)
+
+X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
+
+print("\nScaled data:")
+print(X_scaled_df.head())
+
+# 12. Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled_df,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+print("\nTraining and Testing Data:")
+print("X_train:", X_train.shape)
+print("X_test:", X_test.shape)
+print("y_train:", y_train.shape)
+print("y_test:", y_test.shape)
+
+# 13. Export the cleaned dataset
+final_df = pd.concat(
+    [X_scaled_df, y.reset_index(drop=True)], axis=1
+)
+
+final_df.to_csv("Telecom_Customer_Churn_Cleaned.csv", index=False)
+
+print("\nCleaned dataset exported successfully!")
