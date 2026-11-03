@@ -1,0 +1,71 @@
+#practical NO.5:Random forest
+
+# 1. Import required libraries
+import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# 2. Load the dataset
+df = pd.read_csv("car_evaluation.csv")
+
+# 3. Display first 5 rows
+print("First 5 rows:")
+print(df.head())
+
+# 4. Display dataset information
+print("\nDataset Information:")
+print(df.info())
+
+# 5. Display unique classes of target column
+print("\nUnique classes:")
+print(df.iloc[:, -1].unique())
+
+# 6. Convert categorical data into numerical data
+encoder = LabelEncoder()
+
+for col in df.columns:
+    df[col] = encoder.fit_transform(df[col])
+
+# 7. Separate features and target
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
+
+print("\nFeatures Shape:", X.shape)
+print("Target Shape:", y.shape)
+
+# 8. Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+print("\nTraining Samples:", X_train.shape[0])
+print("Testing Samples:", X_test.shape[0])
+
+# 9. Build Random Forest Classifier
+model = RandomForestClassifier(
+    n_estimators=100, random_state=42
+)
+
+model.fit(X_train, y_train)
+
+# 10. Make predictions
+y_pred = model.predict(X_test)
+
+print("\nFirst 10 Predictions:", y_pred[:10])
+print("First 10 Actual Values:", y_test[:10].values)
+
+# 11. Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\nAccuracy of Random Forest:", round(accuracy * 100, 2), "%")
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# 12. Display confusion matrix
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
