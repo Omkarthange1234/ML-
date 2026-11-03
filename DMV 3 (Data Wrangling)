@@ -1,0 +1,144 @@
+
+# Practical 3: Data Wrangling
+
+# 1. Import required libraries
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+
+# 2. Load the dataset
+df = pd.read_csv("Bengaluru_House_Data.csv")
+
+# 3. Explore the dataset
+print("DataFrame Head:")
+print(df.head())
+
+# 4. Handle missing values
+print("\nMissing Values Before Handling:")
+print(df.isnull().sum())
+
+df['balcony'] = df['balcony'].fillna(df['balcony'].median())
+df['bath'] = df['bath'].fillna(df['bath'].median())
+
+df['society'] = df['society'].fillna('Unknown')
+
+df.dropna(subset=['location', 'size'], inplace=True)
+
+print("\nMissing Values After Handling:")
+print(df.isnull().sum())
+
+# 5. Create and merge DataFrames
+neighborhood_info = {
+    'location': ['Electronic City Phase II', 'Chikka Tirupathi',
+                 'Uttarahalli', 'Whitefield'],
+    'neighborhood_quality': ['Good', 'Average', 'Good', 'Excellent']
+}
+
+df_neighborhood = pd.DataFrame(neighborhood_info)
+
+df_merged = pd.merge(
+    df, df_neighborhood, on='location', how='left'
+)
+
+print("\nMerged DataFrame Head:")
+print(df_merged.head())
+
+# 6. Perform filtering
+ready_to_move = df[df['availability'] == 'Ready To Move']
+print("\nReady To Move Properties:", ready_to_move.shape)
+
+two_bhk_properties = df[df['size'] == '2 BHK']
+print("2 BHK Properties:", two_bhk_properties.shape)
+
+whitefield_properties = df[df['location'] == 'Whitefield']
+print("Whitefield Properties:", whitefield_properties.shape)
+
+specific_properties = df[
+    (df['availability'] == 'Ready To Move') &
+    (df['size'] == '2 BHK') &
+    (df['location'] == 'Whitefield')
+]
+
+print("\nSpecific Properties:")
+print(specific_properties.head())
+
+# 7. Perform one-hot encoding
+area_type_dummies = pd.get_dummies(
+    df['area_type'], prefix='area'
+)
+
+df_encoded = pd.concat(
+    [df, area_type_dummies], axis=1
+)
+
+print("\nOne-Hot Encoded DataFrame:")
+print(df_encoded.head())
+
+# 8. Perform label encoding
+label_encoder = LabelEncoder()
+
+df['location_encoded'] = label_encoder.fit_transform(
+    df['location']
+)
+
+print("\nLabel Encoded Location:")
+print(df[['location', 'location_encoded']].head())
+
+# 9. Calculate average prices
+avg_price_by_location = (
+    df.groupby('location')['price']
+    .mean()
+    .sort_values(ascending=False)
+)
+
+print("\nAverage Price by Location (Top 10):")
+print(avg_price_by_location.head(10))
+
+avg_price_by_area_type = (
+    df.groupby('area_type')['price']
+    .mean()
+    .sort_values(ascending=False)
+)
+
+print("\nAverage Price by Area Type:")
+print(avg_price_by_area_type)
+
+# 10. Handle outliers
+
+def convert_sqft_to_num(x):
+    tokens = str(x).split('-')
+
+    if len(tokens) == 2:
+        return (float(tokens[0]) + float(tokens[1])) / 2
+
+    try:
+        return float(x)
+    except:
+        return None
+
+df['total_sqft'] = df['total_sqft'].apply(convert_sqft_to_num)
+
+df.dropna(subset=['total_sqft'], inplace=True)
+
+# Calculate Q1, Q3 and IQR
+Q1 = df['price'].quantile(0.25)
+Q3 = df['price'].quantile(0.75)
+
+IQR = Q3 - Q1
+
+# Calculate outlier boundaries
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+print("\nOriginal DataFrame Shape:", df.shape)
+print("Lower Bound:", lower_bound)
+print("Upper Bound:", upper_bound)
+
+# Remove outliers
+df_no_outliers = df[
+    (df['price'] >= lower_bound) &
+    (df['price'] <= upper_bound)
+]
+
+print("\nDataFrame Shape After Removing Outliers:")
+print(df_no_outliers.shape)
